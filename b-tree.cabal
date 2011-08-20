@@ -1,0 +1,26 @@
+Name:    b-tree
+Version: 0.0.0.1
+
+License:       BSD3
+License-file:  LICENSE
+Author:        Jasper Van der Jeugt <m@jaspervdj.be>
+Maintainer:    Jasper Van der Jeugt <m@jaspervdj.be>
+Copyright:     2011 Jasper Van der Jeugt
+Category:      Data
+Build-type:    Simple
+Cabal-version: >= 1.2
+
+
+Library
+  Hs-source-dirs:
+    src
+
+  Exposed-modules:     
+    Data.BTree
+  
+  Build-depends:       
+    base   >= 4   && < 5,
+    vector >= 0.7 && < 0.8
+  
+  Other-modules:       
+    Data.BTree.Vector

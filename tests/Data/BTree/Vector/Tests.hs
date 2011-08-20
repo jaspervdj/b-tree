@@ -14,7 +14,7 @@ import Data.BTree.Vector
 
 tests :: Test
 tests = testGroup "Data.BTree.Vector.Tests"
-    [ testProperty "shiftTest" shiftTest
+    [ testProperty "unsafeShiftTest" unsafeShiftTest
     ]
 
 data ShiftTestDirection = L | R
@@ -39,8 +39,8 @@ instance Arbitrary ShiftTest where
         ns  <- replicateM len arbitrary
         return $ ShiftTest dir lo hi ns
 
-shiftTest :: ShiftTest -> Bool
-shiftTest (ShiftTest dir lo hi ns) = expected == result
+unsafeShiftTest :: ShiftTest -> Bool
+unsafeShiftTest (ShiftTest dir lo hi ns) = expected == result
   where
     -- The expected result
     expected
@@ -60,7 +60,7 @@ shiftTest (ShiftTest dir lo hi ns) = expected == result
         forM_ (zip [0 ..] ns) $ \(i, x) -> V.write v i x
 
         -- Shift
-        (case dir of L -> shiftLeft; R -> shiftRight) lo hi v
+        (case dir of L -> unsafeShiftL; R -> unsafeShiftR) lo hi v
 
         -- Read the vector again
         forM [0 .. length' - 1] $ V.read v

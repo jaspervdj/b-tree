@@ -2,40 +2,40 @@
 -- of the B-tree.
 {-# LANGUAGE BangPatterns #-}
 module Data.BTree.Vector
-    ( shiftLeft
-    , shiftRight
+    ( unsafeShiftL
+    , unsafeShiftR
     ) where
 
 import Control.Monad.ST (ST)
 import qualified Data.Vector.Mutable as V
 
 -- | Shift part of a vector left by one
-shiftLeft :: Int            -- ^ Start of the range
-          -> Int            -- ^ Index /after/ the range
-          -> V.MVector s a  -- ^ Vector of which a part should be shifted
-          -> ST s ()
-shiftLeft lo up vector = shiftLeft' lo
+unsafeShiftL :: Int            -- ^ Start of the range
+             -> Int            -- ^ Index /after/ the range
+             -> V.MVector s a  -- ^ Vector of which a part should be shifted
+             -> ST s ()
+unsafeShiftL lo up vector = unsafeShiftL' lo
   where
-    shiftLeft' !i
+    unsafeShiftL' !i
         | i >= up   = return ()
         | otherwise = do
-            x <- V.read vector i
-            V.write vector (i - 1) x
-            shiftLeft' (i + 1)
-{-# INLINE [0] shiftLeft #-}
+            x <- V.unsafeRead vector i
+            V.unsafeWrite vector (i - 1) x
+            unsafeShiftL' (i + 1)
+{-# INLINE [0] unsafeShiftL #-}
 
 -- | Shift part of a vector left by one
-shiftRight :: Int            -- ^ Start of the range
-           -> Int            -- ^ Index /after/ the range
-           -> V.MVector s a  -- ^ Vector of which a part should be shifted
-           -> ST s ()
-shiftRight lo up vector = shiftRight' up
+unsafeShiftR :: Int            -- ^ Start of the range
+             -> Int            -- ^ Index /after/ the range
+             -> V.MVector s a  -- ^ Vector of which a part should be shifted
+             -> ST s ()
+unsafeShiftR lo up vector = unsafeShiftR' up
   where
-    shiftRight' !i
+    unsafeShiftR' !i
         | i <= lo   = return ()
         | otherwise = do
             let !i' = i - 1
-            x <- V.read vector i'
-            V.write vector i x
-            shiftRight' i'
-{-# INLINE [0] shiftRight #-}
+            x <- V.unsafeRead vector i'
+            V.unsafeWrite vector i x
+            unsafeShiftR' i'
+{-# INLINE [0] unsafeShiftR #-}

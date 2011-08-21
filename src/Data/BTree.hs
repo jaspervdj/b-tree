@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, PatternGuards #-}
 module Data.BTree
     ( -- * Types
       BTree
@@ -7,7 +7,8 @@ module Data.BTree
     , empty
     , singleton
 
-      -- * Searching
+      -- * Queries
+    , size
     , lookup
 
       -- * Insertion
@@ -31,10 +32,10 @@ maxNodeSize = 8
 
 data BTree k v
     = Node
-        { nodeSize      :: !Int
-        , nodeTotalSize :: !Int
-        , nodeKeys      :: !(A.Array k)
-        , nodeChildren  :: !(A.Array (BTree k v))
+        { nodeSize        :: !Int
+        , nodeTotalValues :: !Int
+        , nodeKeys        :: !(A.Array k)
+        , nodeChildren    :: !(A.Array (BTree k v))
         }
     | Leaf
         { nodeSize      :: !Int
@@ -52,6 +53,11 @@ singleton :: Ord k => k -> v -> BTree k v
 singleton k v = Leaf 1 (A.singleton k) (A.singleton v)
 {-# INLINE singleton #-}
 
+-- | Find the number of values in the 'BTree'
+size :: BTree k v -> Int
+size (Leaf s _ _)     = s
+size (Node _ tv _ _ ) = tv
+
 -- | Find an element in the 'BTree'
 lookup :: Ord k => k -> BTree k v -> Maybe v
 lookup k = lookup'
@@ -65,54 +71,82 @@ lookup k = lookup'
         {-# INLINE notFound #-}
 {-# INLINE lookup #-}
 
+-- | Signals for insertion
+data Insert k v = Ok !(BTree k v)
+                | Split !(BTree k v) !(BTree k v)
+
 -- | Insert an element into the 'BTree'
 insert :: Ord k => k -> v -> BTree k v -> BTree k v
-insert k v (Leaf s ks vs) = binarySearchWith found notFound s k ks
+insert k v btree =
+    -- Insertion in the root
+    case insert' btree of
+        Ok btree' -> btree'
+        -- Split the root
+        Split l r ->
+            let !s = 1
+                !tv = size l + size r
+                !ks = A.singleton (A.unsafeIndex (nodeKeys r) 0)
+                !cs = A.pair l r
+            in Node s tv ks cs
   where
-    -- Overwrite the value
-    found i  = Leaf s ks (A.unsafePut s i v vs)
-    -- Insert the value
-    -- TODO: check if size is big enough
-    notFound i
-        -- We have enough place, so just insert it
-        | s + 1 <= maxNodeSize = Leaf
-            (s + 1) (A.unsafeInsert s i k ks) (A.unsafeInsert s i v vs)
-        -- We need to split this leaf and insert left
-        | i < s' =
-            let lks = A.unsafeInsertIn 0 s' i k ks
-                lvs = A.unsafeInsertIn 0 s' i v vs
-                rks = A.unsafeCopyRange s' rs ks
-                rvs = A.unsafeCopyRange s' rs vs
-                l = Leaf (s' + 1) lks lvs
-                r = Leaf rs rks rvs
-                ks' = A.singleton (A.unsafeIndex rks 0)
-                cs' = A.pair l r
-            in Node 1 (s + 1) ks' cs'
-        -- We need to split this leaf and insert right
-        | otherwise =
-            let lks = A.unsafeCopyRange 0 s' ks
-                lvs = A.unsafeCopyRange 0 s' vs
-                rks = A.unsafeInsertIn s' rs (i - s') k ks
-                rvs = A.unsafeInsertIn s' rs (i - s') v vs
-                l = Leaf s' lks lvs
-                r = Leaf (rs + 1) rks rvs
-                ks' = A.singleton (A.unsafeIndex rks 0)
-                cs' = A.pair l r
-            in Node 1 (s + 1) ks' cs'
+    -- Insertion in a leaf node
+    insert' (Leaf s ks vs) = binarySearchWith found notFound s k ks
       where
-        s' = s `div` 2
-        rs = s - s'
-insert k v (Node s ts ks cs) = binarySearchWith found notFound s k ks
-  where
-    -- Found: right child
-    -- TODO: update total size
-    -- TODO: optimization: size does not change
-    found i = let !c' = insert k v (A.unsafeIndex cs (i + 1))
-              in Node s ts ks (A.unsafePut (s + 1) (i + 1) c' cs)
+        -- Overwrite the value
+        found i = Ok $ Leaf s ks (A.unsafePut s i v vs)
 
-    -- Not found: left child
-    notFound i = let !c' = insert k v (A.unsafeIndex cs i)
-                 in Node s ts ks (A.unsafePut (s + 1) i c' cs)
+        -- Insert the value
+        notFound i
+            -- We have enough place, so just insert it
+            | s + 1 <= maxNodeSize = Ok $ Leaf
+                (s + 1) (A.unsafeInsert s i k ks) (A.unsafeInsert s i v vs)
+            -- We need to split this leaf and insert left
+            | i < s' =
+                let lks = A.unsafeInsertIn 0 s' i k ks
+                    lvs = A.unsafeInsertIn 0 s' i v vs
+                    rks = A.unsafeCopyRange s' rs ks
+                    rvs = A.unsafeCopyRange s' rs vs
+                    l = Leaf (s' + 1) lks lvs
+                    r = Leaf rs rks rvs
+                in Split l r
+            -- We need to split this leaf and insert right
+            | otherwise =
+                let lks = A.unsafeCopyRange 0 s' ks
+                    lvs = A.unsafeCopyRange 0 s' vs
+                    rks = A.unsafeInsertIn s' rs (i - s') k ks
+                    rvs = A.unsafeInsertIn s' rs (i - s') v vs
+                    l = Leaf s' lks lvs
+                    r = Leaf (rs + 1) rks rvs
+                in Split l r
+          where
+            s' = s `div` 2
+            rs = s - s'
+
+    -- Insertion in a parent node
+    insert' (Node s tv ks cs) = binarySearchWith found notFound s k ks
+      where
+        -- Found: we continue in the right child child. We also know the size
+        -- cannot change (since no new key is added).
+        found i = case insert' (A.unsafeIndex cs (i + 1)) of
+            Ok c' -> Ok $ Node s tv ks (A.unsafePut (s + 1) (i + 1) c' cs)
+            _     -> error "Data.BTree.insert: internal error!"
+
+        -- Not found: left child. Now, it is possible that we have to split our
+        -- node in order to balance the tree
+        -- TODO: update size!
+        notFound i = case insert' (A.unsafeIndex cs i) of
+            Ok c' -> Ok $ Node s tv ks (A.unsafePut (s + 1) i c' cs)
+            Split l r
+                -- We're still good
+                | s + 2 <= maxNodeSize ->
+                    let -- Key to copy
+                        !k' = A.unsafeIndex (nodeKeys r) 0
+                        !ks' = A.unsafeInsert s i k' ks
+                        !cs' = A.unsafePutPair (s + 1) i l r cs
+                    in Ok $ Node (s + 1) tv ks' cs'
+                -- We need to split this node
+                -- TODO
+                | otherwise -> undefined
 {-# INLINE insert #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging

@@ -4,6 +4,7 @@ module Data.BTree.Array.Util
     , singleton
     , pair
     , unsafePut
+    , unsafePutPair
     , unsafeInsert
     , unsafeInsertIn
     , unsafeCopyRange
@@ -43,6 +44,23 @@ unsafePut s i x ar = A.run $ do
     A.unsafeWrite mar i x
     return mar
 {-# INLINE unsafePut #-}
+
+-- | Put a pair of elements in the array, shifting everything right of the index
+-- to the right. This creates a copy of the array.
+unsafePutPair :: Int      -- ^ Size of the new array
+              -> Int      -- ^ Index
+              -> a        -- ^ Value
+              -> a        -- ^ Value
+              -> Array a  -- ^ Array to modify
+              -> Array a  -- ^ Modified array
+unsafePutPair s i x y ar = A.run $ do
+    mar <- A.new (s + 1)
+    A.unsafeCopy ar 0 mar 0 i
+    A.unsafeCopy ar (i + 1) mar (i + 2) (s - i - 1)
+    A.unsafeWrite mar i x
+    A.unsafeWrite mar (i + 1) y
+    return mar
+{-# INLINE unsafePutPair #-}
 
 -- | Insert an element in the array, shifting the values right of the index. The
 -- array size should be big enough for this shift, this is not checked. This

@@ -23,6 +23,7 @@ import Data.List (intercalate)
 import qualified Prelude as P
 import qualified Data.Vector.Mutable as V
 
+import Data.BTree.Array.BinarySearch
 import qualified Data.BTree.Array as A
 
 childrenPerNode :: Int
@@ -54,7 +55,8 @@ singleton k v = Leaf 1 (A.singleton k) (A.singleton v)
 
 -- | Find an element in the 'BTree'
 lookup :: Ord k => k -> BTree k v -> Maybe v
-lookup = undefined
+lookup x (Leaf s k v) = fmap (A.unsafeIndex v) (binarySearch s x k)
+{-# INLINE lookup #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging
 showBTree :: (Show k, Show v) => BTree k v -> String

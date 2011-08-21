@@ -1,6 +1,6 @@
--- | Auxiliary functions for the implementation of the B-tree
+-- | Auxiliary binary search functions for the implementation of the B-tree
 {-# LANGUAGE BangPatterns #-}
-module Data.BTree.Array.Util
+module Data.BTree.Array.BinarySearch
     ( binarySearch
     ) where
 

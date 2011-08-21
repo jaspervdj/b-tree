@@ -25,3 +25,4 @@ Library
   
   Other-modules:       
     Data.BTree.Array
+    Data.BTree.Array.BinarySearch

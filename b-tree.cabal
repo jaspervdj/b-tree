@@ -19,8 +19,9 @@ Library
     Data.BTree
   
   Build-depends:       
-    base   >= 4   && < 5,
-    vector >= 0.7 && < 0.8
+    base     >= 4   && < 5,
+    ghc-prim >= 0.2 && < 0.3,
+    vector   >= 0.7 && < 0.8
   
   Other-modules:       
-    Data.BTree.Vector
+    Data.BTree.Array

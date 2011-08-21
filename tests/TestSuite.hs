@@ -1,8 +1,8 @@
 import Test.Framework (defaultMain)
 
-import qualified Data.BTree.Vector.Tests as Data.BTree.Vector.Tests
+import qualified Data.BTree.Array.Util.Tests as Data.BTree.Array.Util.Tests
 
 main :: IO ()
 main = defaultMain
-    [ Data.BTree.Vector.Tests.tests
+    [ Data.BTree.Array.Util.Tests.tests
     ]

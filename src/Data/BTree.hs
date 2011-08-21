@@ -1,10 +1,20 @@
 {-# LANGUAGE BangPatterns #-}
-module Data.BTree where
+module Data.BTree
+    ( -- * Types
+      BTree
 
-import Prelude ( Bool, Int, Monad, Ord, Ordering (..), Show, String, compare
-               , div, fmap, map, otherwise, return, show, undefined, (+), (-)
-               , (/), (.), ($), (++), (==), (<=), (>=), (>), (>>=)
-               )
+      -- * Creation
+    , empty
+    , singleton
+
+      -- * Inspecting
+    , lookup
+
+      -- * Debugging
+    , showBTree
+    ) where
+
+import Prelude hiding (lookup)
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad.ST (ST, runST)
@@ -13,113 +23,55 @@ import Data.List (intercalate)
 import qualified Prelude as P
 import qualified Data.Vector.Mutable as V
 
+import qualified Data.BTree.Array as A
+
 childrenPerNode :: Int
-childrenPerNode = 24
+childrenPerNode = 16
+{-# INLINE childrenPerNode #-}
 
-data BTree s k v = BTree
-    { nodeSize      :: !Int
-    , nodeTotalSize :: !Int
-    , nodeKeys      :: !(V.STVector s k)
-    , nodeValues    :: !(V.STVector s v)
-    , nodeChildren  :: !(V.STVector s (BTree s k v))
-    }
+data BTree k v
+    = Node
+        { nodeSize      :: !Int
+        , nodeTotalSize :: !Int
+        , nodeKeys      :: !(A.Array k)
+        , nodeChildren  :: !(A.Array (BTree k v))
+        }
+    | Leaf
+        { nodeSize      :: !Int
+        , nodeKeys      :: !(A.Array k)
+        , nodeValues    :: !(A.Array v)
+        }
 
--- | Check whether or not a certain 'BTree' does not have any children
-hasChildren :: BTree s k v -> Bool
-hasChildren btree = nodeTotalSize btree > nodeSize btree
-{-# INLINE [0] hasChildren #-}
+-- | Create an empty 'BTree'
+empty :: Ord k => BTree k v
+empty = Leaf 0 A.empty A.empty
+{-# INLINE empty #-}
+
+-- | Create a 'BTree' holding a single element
+singleton :: Ord k => k -> v -> BTree k v
+singleton k v = Leaf 1 (A.singleton k) (A.singleton v)
+{-# INLINE singleton #-}
+
+-- | Find an element in the 'BTree'
+lookup :: Ord k => k -> BTree k v -> Maybe v
+lookup = undefined
 
 -- | Show the internal structure of a 'BTree', useful for debugging
-showBTree :: (Show k, Show v) => BTree s k v -> ST s String
-showBTree btree = do
-    s <- showBTree' btree
-    return $ P.unlines (s :: [String])
+showBTree :: (Show k, Show v) => BTree k v -> String
+showBTree btree = unlines $ showBTree' btree
   where
-    showBTree' btree = do
-        elements <- mapM showElement [0 .. size']
-        return $ P.concat elements
-      where
-        size' = nodeSize btree 
-        hasChildren' = hasChildren btree
+    showBTree' b = case b of
+        Node s _ _ _ -> concatMap (showElement b) [0 .. s]
+        Leaf s _ _   -> map (showTuple b) [0 .. s - 1]
 
-        showElement i
-            | i == size'   = showChild i btree
-            | hasChildren' = do
-                c <- showChild i btree
-                t <- showTuple i btree
-                return (c ++ t)
-            | otherwise    = showTuple i btree
+    showElement b i
+        | i == nodeSize b = showChild b i
+        | otherwise       = showChild b i ++ [showKey b i]
 
-    showChild i btree = do
-        c <- V.read (nodeChildren btree) i
-        l <- showBTree' c
-        return $ map ("    " ++) (l :: [String])
+    showChild b i = map (++ "    ") $ showBTree' $
+        A.unsafeIndex (nodeChildren b) i
 
-    showTuple i btree = do
-        k <- V.read (nodeKeys btree) i
-        v <- V.read (nodeValues btree) i
-        return [show (k, v)]
+    showKey b i = show $ A.unsafeIndex (nodeKeys b) i
 
-size :: BTree s k v -> Int
-size (BTree _ ts _ _ _) = ts
-
-new :: ST s (BTree s k v)
-new = do
-    keys     <- V.new (childrenPerNode - 1)
-    values   <- V.new (childrenPerNode - 1)
-    children <- V.new childrenPerNode
-
-    return $ BTree 0 0 keys values children
-{-# INLINE [0] new #-}
-
-singleton :: k -> v -> ST s (BTree s k v)
-singleton k v = do
-    keys     <- V.new (childrenPerNode - 1)
-    values   <- V.new (childrenPerNode - 1)
-    children <- V.new childrenPerNode
-
-    V.write keys   0 k
-    V.write values 0 v
-
-    return $ BTree 1 1 keys values children
-{-# INLINE [0] singleton #-}
-
-insert :: Ord k => k -> v -> BTree s k v -> ST s (BTree s k v)
-insert k v (BTree s ts keys values children) = findIndex 0 s
-  where
-    findIndex !lo !hi
-        | lo == hi = do
-            -- child  <- V.read children lo 
-            -- child' <- insertInChild k v child
-            -- V.write children lo child'
-            undefined
-        | lo == s  = undefined -- insertInChild (size - 1)
-        | otherwise  = do
-            let !i = (lo + hi) `div` 2
-            x <- V.read keys i
-            case compare k x of
-                EQ -> undefined
-                LT -> findIndex lo i
-                GT -> findIndex i hi
-
--- insertInChild :: Ord k => k -> v -> BTree s k v -> ST s (BTree s k v)
--- insertInChild k v Null = singleton k v
--- insertInChild k v t    = insert k v t
-
-{-
-new :: PrimMonad m => m (BTree (PrimState m) k v)
-new = return Null
-
-singleton :: PrimMonad m
-          => k
-          -> v
-          -> m (BTree (PrimState m) k v)
-singleton k v = do undefined
-
-insert :: (PrimMonad m, Ord k)
-       => k
-       -> v
-       -> (BTree (PrimState m) k v)
-       -> m (BTree (PrimState m) k v)
-insert k v Null = undefined
--}
+    showTuple b i = show
+        (A.unsafeIndex (nodeKeys b) i, A.unsafeIndex (nodeValues b) i)

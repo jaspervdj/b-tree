@@ -19,12 +19,7 @@ module Data.BTree
 
 import Prelude hiding (lookup)
 
-import Control.Applicative ((<$>), (<*>))
-import Control.Monad.ST (ST, runST)
-import Control.Monad (liftM3, mapM, sequence)
-import Data.List (intercalate)
-import qualified Prelude as P
-import qualified Data.Vector.Mutable as V
+-- import qualified Prelude as P
 
 import Data.BTree.Array.BinarySearch
 import qualified Data.BTree.Array as A
@@ -90,9 +85,9 @@ insert k v (Leaf s ks vs) = binarySearchWith found notFound s k ks
                 rvs = A.unsafeCopyRange s' rs vs
                 l = Leaf (s' + 1) lks lvs
                 r = Leaf rs rks rvs
-                ks = A.singleton (A.unsafeIndex rks 0)
-                cs = A.pair l r
-            in Node 1 (s + 1) ks cs
+                ks' = A.singleton (A.unsafeIndex rks 0)
+                cs' = A.pair l r
+            in Node 1 (s + 1) ks' cs'
         -- We need to split this leaf and insert right
         | otherwise =
             let lks = A.unsafeCopyRange 0 s' ks
@@ -101,11 +96,11 @@ insert k v (Leaf s ks vs) = binarySearchWith found notFound s k ks
                 rvs = A.unsafeInsertIn s' rs (i - s') v vs
                 l = Leaf s' lks lvs
                 r = Leaf (rs + 1) rks rvs
-                ks = A.singleton (A.unsafeIndex rks 0)
-                cs = A.pair l r
-            in Node 1 (s + 1) ks cs
+                ks' = A.singleton (A.unsafeIndex rks 0)
+                cs' = A.pair l r
+            in Node 1 (s + 1) ks' cs'
       where
-        s' = (s `div` 2) + 1
+        s' = s `div` 2
         rs = s - s'
 insert k v (Node s ts ks cs) = binarySearchWith found notFound s k ks
   where
@@ -132,7 +127,7 @@ showBTree btree = unlines $ showBTree' btree
         | i == nodeSize b = showChild b i
         | otherwise       = showChild b i ++ [showKey b i]
 
-    showChild b i = map (++ "    ") $ showBTree' $
+    showChild b i = map ("    " ++) $ showBTree' $
         A.unsafeIndex (nodeChildren b) i
 
     showKey b i = show $ A.unsafeIndex (nodeKeys b) i

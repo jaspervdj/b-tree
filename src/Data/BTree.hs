@@ -7,8 +7,11 @@ module Data.BTree
     , empty
     , singleton
 
-      -- * Inspecting
+      -- * Searching
     , lookup
+
+      -- * Insertion
+    , insert
 
       -- * Debugging
     , showBTree
@@ -55,8 +58,39 @@ singleton k v = Leaf 1 (A.singleton k) (A.singleton v)
 
 -- | Find an element in the 'BTree'
 lookup :: Ord k => k -> BTree k v -> Maybe v
-lookup x (Leaf s k v) = fmap (A.unsafeIndex v) (binarySearch s x k)
+lookup k = lookup'
+  where
+    lookup' (Leaf s ks vs) = fmap (A.unsafeIndex vs) (binarySearch s k ks)
+    lookup' (Node s _ ks cs) = binarySearchWith found notFound s k ks
+      where
+        found i = lookup' (A.unsafeIndex cs (i + 1))
+        {-# INLINE found #-}
+        notFound i = lookup' (A.unsafeIndex cs i)
+        {-# INLINE notFound #-}
 {-# INLINE lookup #-}
+
+-- | Insert an element into the 'BTree'
+insert :: Ord k => k -> v -> BTree k v -> BTree k v
+insert k v (Leaf s ks vs) = binarySearchWith found notFound s k ks
+  where
+    -- Overwrite the value
+    found i  = Leaf s ks (A.unsafePut s i v vs)
+    -- Insert the value
+    -- TODO: check if size is big enough
+    notFound i =
+        Leaf (s + 1) (A.unsafeInsert s i k ks) (A.unsafeInsert s i v vs)
+insert k v (Node s ts ks cs) = binarySearchWith found notFound s k ks
+  where
+    -- Found: right child
+    -- TODO: update total size
+    -- TODO: optimization: size does not change
+    found i = let !c' = insert k v (A.unsafeIndex cs (i + 1))
+              in Node s ts ks (A.unsafePut (s + 1) (i + 1) c' cs)
+
+    -- Not found: left child
+    notFound i = let !c' = insert k v (A.unsafeIndex cs i)
+                 in Node s ts ks (A.unsafePut (s + 1) i c' cs)
+{-# INLINE insert #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging
 showBTree :: (Show k, Show v) => BTree k v -> String

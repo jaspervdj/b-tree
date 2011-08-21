@@ -18,6 +18,10 @@ module Data.BTree.Array
       -- * Inspecting arrays
     , unsafeIndex
 
+      -- * High-level copying functions
+    , unsafePut
+    , unsafeInsert
+
       -- * Debugging
     , fromList
     , toList
@@ -94,6 +98,34 @@ unsafeCopy ar si mar di n = go si di 0
 unsafeIndex :: Array a -> Int -> a
 unsafeIndex (Array ar#) (I# i#) = case indexArray# ar# i# of (# x #) -> x
 {-# INLINE unsafeIndex #-}
+
+-- | Set an element in the array. This creates a copy of the array.
+unsafePut :: Int      -- ^ Size of the new array
+          -> Int      -- ^ Index
+          -> a        -- ^ Value
+          -> Array a  -- ^ Array to modify
+          -> Array a  -- ^ Modified array
+unsafePut s i x ar = run $ do
+    mar <- new s
+    unsafeCopy ar 0 mar 0 s
+    unsafeWrite mar i x
+    return mar
+
+-- | Insert an element in the array, shifting the values right of the index. The
+-- array size should be big enough for this shift, this is not checked. This
+-- creates a copy of the array.
+unsafeInsert :: Int      -- ^ Size of the original array
+             -> Int      -- ^ Index
+             -> a        -- ^ Value
+             -> Array a  -- ^ Array to modify
+             -> Array a  -- ^ Modified array
+unsafeInsert s i x ar = run $ do
+    mar <- new (s + 1)
+    -- TODO: Maybe check indices so we don't make too many calls to memcmp
+    unsafeCopy ar 0 mar 0 i
+    unsafeCopy ar i mar (i + 1) (s - i)
+    unsafeWrite mar i x
+    return mar
 
 -- | Convert a list to an array. For debugging purposes only.
 fromList :: [a] -> Array a

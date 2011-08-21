@@ -28,10 +28,11 @@ import qualified Data.Vector.Mutable as V
 
 import Data.BTree.Array.BinarySearch
 import qualified Data.BTree.Array as A
+import qualified Data.BTree.Array.Util as A
 
-childrenPerNode :: Int
-childrenPerNode = 16
-{-# INLINE childrenPerNode #-}
+maxNodeSize :: Int
+maxNodeSize = 8
+{-# INLINE maxNodeSize #-}
 
 data BTree k v
     = Node
@@ -77,8 +78,35 @@ insert k v (Leaf s ks vs) = binarySearchWith found notFound s k ks
     found i  = Leaf s ks (A.unsafePut s i v vs)
     -- Insert the value
     -- TODO: check if size is big enough
-    notFound i =
-        Leaf (s + 1) (A.unsafeInsert s i k ks) (A.unsafeInsert s i v vs)
+    notFound i
+        -- We have enough place, so just insert it
+        | s + 1 <= maxNodeSize = Leaf
+            (s + 1) (A.unsafeInsert s i k ks) (A.unsafeInsert s i v vs)
+        -- We need to split this leaf and insert left
+        | i < s' =
+            let lks = A.unsafeInsertIn 0 s' i k ks
+                lvs = A.unsafeInsertIn 0 s' i v vs
+                rks = A.unsafeCopyRange s' rs ks
+                rvs = A.unsafeCopyRange s' rs vs
+                l = Leaf (s' + 1) lks lvs
+                r = Leaf rs rks rvs
+                ks = A.singleton (A.unsafeIndex rks 0)
+                cs = A.pair l r
+            in Node 1 (s + 1) ks cs
+        -- We need to split this leaf and insert right
+        | otherwise =
+            let lks = A.unsafeCopyRange 0 s' ks
+                lvs = A.unsafeCopyRange 0 s' vs
+                rks = A.unsafeInsertIn s' rs (i - s') k ks
+                rvs = A.unsafeInsertIn s' rs (i - s') v vs
+                l = Leaf s' lks lvs
+                r = Leaf (rs + 1) rks rvs
+                ks = A.singleton (A.unsafeIndex rks 0)
+                cs = A.pair l r
+            in Node 1 (s + 1) ks cs
+      where
+        s' = (s `div` 2) + 1
+        rs = s - s'
 insert k v (Node s ts ks cs) = binarySearchWith found notFound s k ks
   where
     -- Found: right child

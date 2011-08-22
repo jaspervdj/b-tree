@@ -6,6 +6,7 @@ module Data.BTree
       -- * Creation
     , empty
     , singleton
+    , fromList
 
       -- * Queries
     , size
@@ -22,12 +23,14 @@ import Prelude hiding (lookup)
 
 -- import qualified Prelude as P
 
+import Data.List (foldl')
+
 import Data.BTree.Array.BinarySearch
 import qualified Data.BTree.Array as A
 import qualified Data.BTree.Array.Util as A
 
 maxNodeSize :: Int
-maxNodeSize = 8
+maxNodeSize = 4
 {-# INLINE maxNodeSize #-}
 
 data BTree k v
@@ -52,6 +55,12 @@ empty = Leaf 0 A.empty A.empty
 singleton :: Ord k => k -> v -> BTree k v
 singleton k v = Leaf 1 (A.singleton k) (A.singleton v)
 {-# INLINE singleton #-}
+
+-- | Create a 'BTree' from an associative list
+fromList :: Ord k => [(k, v)] -> BTree k v
+fromList = foldl' insert' empty
+  where
+    insert' t (k, v) = insert k v t
 
 -- | Find the number of values in the 'BTree'
 size :: BTree k v -> Int
@@ -144,9 +153,27 @@ insert k v btree =
                         !ks' = A.unsafeInsert s i k' ks
                         !cs' = A.unsafePutPair (s + 1) i l r cs
                     in Ok $ Node (s + 1) tv ks' cs'
-                -- We need to split this node
-                -- TODO
-                | otherwise -> undefined
+                -- We need to split this node. This should not happen often.
+                -- TODO: This implementation can be written using at least one
+                -- less copy.
+                | otherwise ->
+                    let -- Create a "too large" node
+                        !k' = A.unsafeIndex (nodeKeys r) 0
+                        !ks' = A.unsafeInsert s i k' ks
+                        !cs' = A.unsafePutPair (s + 1) i l r cs
+                        -- Currently: number of keys: s + 1, and s + 2 children
+                        -- s + 1 is even, we will have one less key on the right
+                        !ls = (s + 1) `div` 2
+                        !rs = ls - 1
+                        -- Select the left part
+                        !lks = A.unsafeCopyRange 0 ls ks'
+                        !lcs = A.unsafeCopyRange 0 (ls + 1) cs'
+                        l' = Node ls tv lks lcs
+                        -- Select the right part
+                        !rks = A.unsafeCopyRange (ls + 1) rs ks'
+                        !rcs = A.unsafeCopyRange (ls + 1) (rs + 1) cs'
+                        r' = Node rs tv rks rcs
+                    in Split l' r'
 {-# INLINE insert #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging

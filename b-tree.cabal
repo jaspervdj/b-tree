@@ -20,9 +20,10 @@ Library
   
   Build-depends:       
     base     >= 4   && < 5,
-    ghc-prim >= 0.2 && < 0.3,
-    vector   >= 0.7 && < 0.8
+    ghc-prim >= 0.2 && < 0.3
   
   Other-modules:       
     Data.BTree.Array
+    Data.BTree.Array.Util
     Data.BTree.Array.BinarySearch
+    Data.BTree.Internal

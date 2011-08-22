@@ -5,7 +5,6 @@ module Data.BTree.Invariants
     ) where
 
 import Data.BTree.Internal
-import Debug.Trace
 import qualified Data.BTree.Array as A
 
 -- | Size of the root node (number of keys in it)
@@ -33,7 +32,7 @@ nodeSizeInvariant = all nodeSizeInvariant' . rootChildren
 
     invariant s
         | s >= maxNodeSize `div` 2 && s <= maxNodeSize = True
-        | otherwise = traceShow s False
+        | otherwise = False
 
 -- | Check for perfect balancing
 balancingInvariant :: BTree k v -> Bool

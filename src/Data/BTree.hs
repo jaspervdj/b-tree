@@ -11,6 +11,7 @@ module Data.BTree
       -- * Queries
     , size
     , lookup
+    , minimumKey
 
       -- * Insertion
     , insert
@@ -64,6 +65,10 @@ lookup k = lookup'
         {-# INLINE notFound #-}
 {-# INLINE lookup #-}
 
+minimumKey :: Ord k => BTree k v -> k
+minimumKey (Leaf _ ks _)   = A.unsafeIndex ks 0
+minimumKey (Node _ _ _ cs) = minimumKey (A.unsafeIndex cs 0)
+
 -- | Signals for insertion
 data Insert k v = Ok !(BTree k v)
                 | Split !(BTree k v) !(BTree k v)
@@ -78,7 +83,7 @@ insert k v btree =
         Split l r ->
             let !s = 1
                 !tv = size l + size r
-                !ks = A.singleton (A.unsafeIndex (nodeKeys r) 0)
+                !ks = A.singleton (minimumKey r)
                 !cs = A.pair l r
             in Node s tv ks cs
   where
@@ -131,7 +136,7 @@ insert k v btree =
             Ok c' -> Ok $ Node s tv ks (A.unsafePut (s + 1) i c' cs)
             Split l r
                 -- We're still good
-                | s + 2 <= maxNodeSize ->
+                | s + 1 <= maxNodeSize ->
                     let -- Key to copy
                         !k' = A.unsafeIndex (nodeKeys r) 0
                         !ks' = A.unsafeInsert s i k' ks
@@ -142,20 +147,19 @@ insert k v btree =
                 -- less copy.
                 | otherwise ->
                     let -- Create a "too large" node
-                        !k' = A.unsafeIndex (nodeKeys r) 0
+                        !k' = minimumKey r
                         !ks' = A.unsafeInsert s i k' ks
                         !cs' = A.unsafePutPair (s + 1) i l r cs
                         -- Currently: number of keys: s + 1, and s + 2 children
-                        -- s + 1 is even, we will have one less key on the right
-                        !ls = (s + 1) `div` 2
-                        !rs = ls - 1
+                        -- s + 1 is odd, so we can drop the key in the middle
+                        !s' = s `div` 2
                         -- Select the left part
-                        !lks = A.unsafeCopyRange 0 ls ks'
-                        !lcs = A.unsafeCopyRange 0 (ls + 1) cs'
-                        l' = Node ls tv lks lcs
+                        !lks = A.unsafeCopyRange 0 s' ks'
+                        !lcs = A.unsafeCopyRange 0 (s' + 1) cs'
+                        l' = Node s' tv lks lcs
                         -- Select the right part
-                        !rks = A.unsafeCopyRange (ls + 1) rs ks'
-                        !rcs = A.unsafeCopyRange (ls + 1) (rs + 1) cs'
-                        r' = Node rs tv rks rcs
+                        !rks = A.unsafeCopyRange (s' + 1) s' ks'
+                        !rcs = A.unsafeCopyRange (s' + 1) (s' + 1) cs'
+                        r' = Node s' tv rks rcs
                     in Split l' r'
 {-# INLINE insert #-}

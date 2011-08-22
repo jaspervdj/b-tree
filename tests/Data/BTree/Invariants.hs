@@ -1,11 +1,16 @@
 -- | A number of invariant checks on the B-tree type
 module Data.BTree.Invariants
-    ( nodeSizeInvariant
+    ( invariants
+    , nodeSizeInvariant
     , balancingInvariant
     ) where
 
 import Data.BTree.Internal
 import qualified Data.BTree.Array as A
+
+-- | Check all invariants
+invariants :: BTree k v -> Bool
+invariants btree = all ($ btree) [nodeSizeInvariant, balancingInvariant]
 
 -- | Size of the root node (number of keys in it)
 rootSize :: BTree k v -> Int

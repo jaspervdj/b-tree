@@ -1,4 +1,4 @@
-module Data.BTree.Array.BinarySearch.Tests
+module Data.BTree.Array.Search.Tests
     ( tests
     ) where
 
@@ -7,17 +7,17 @@ import Data.List (nub, sort)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
-import Data.BTree.Array.BinarySearch
+import Data.BTree.Array.Search
 import qualified Data.BTree.Array as A
 
 tests :: Test
-tests = testGroup "Data.BTree.Array.BinarySearch.Tests"
-    [ testProperty "binarySearch"     t_binarySearch
-    , testProperty "binarySearchWith" t_binarySearchWith
+tests = testGroup "Data.BTree.Array.Search.Tests"
+    [ testProperty "search"     t_search
+    , testProperty "searchWith" t_searchWith
     ]
 
-t_binarySearch :: [Int] -> Int -> Bool
-t_binarySearch list x = case binarySearch length' x array of
+t_search :: [Int] -> Int -> Bool
+t_search list x = case search length' x array of
     Nothing -> x `notElem` sorted
     Just i  -> sorted !! i == x
   where
@@ -25,8 +25,8 @@ t_binarySearch list x = case binarySearch length' x array of
     length' = length sorted
     array   = A.fromList sorted
 
-t_binarySearchWith :: [Int] -> Int -> Bool
-t_binarySearchWith list x = case binarySearchWith Left Right length' x array of
+t_searchWith :: [Int] -> Int -> Bool
+t_searchWith list x = case searchWith Left Right length' x array of
     Left i  -> sorted !! i == x
     Right i -> x `notElem` sorted &&
         bound i (sorted !! i > x) &&

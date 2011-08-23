@@ -26,7 +26,7 @@ import Prelude hiding (lookup)
 
 import Data.List (foldl')
 
-import Data.BTree.Array.BinarySearch
+import Data.BTree.Array.Search
 import Data.BTree.Internal
 import qualified Data.BTree.Array as A
 import qualified Data.BTree.Array.Util as A
@@ -56,8 +56,8 @@ size (Node _ tv _ _ ) = tv
 lookup :: Ord k => k -> BTree k v -> Maybe v
 lookup k = lookup'
   where
-    lookup' (Leaf s ks vs) = fmap (A.unsafeIndex vs) (binarySearch s k ks)
-    lookup' (Node s _ ks cs) = binarySearchWith found notFound s k ks
+    lookup' (Leaf s ks vs) = fmap (A.unsafeIndex vs) (search s k ks)
+    lookup' (Node s _ ks cs) = searchWith found notFound s k ks
       where
         found i = lookup' (A.unsafeIndex cs (i + 1))
         {-# INLINE found #-}
@@ -89,7 +89,7 @@ insert k v btree =
             in Node s tv ks cs
   where
     -- Insertion in a leaf node
-    insert' (Leaf s ks vs) = binarySearchWith found notFound s k ks
+    insert' (Leaf s ks vs) = searchWith found notFound s k ks
       where
         -- Overwrite the value
         found i = Ok $ Leaf s ks (A.unsafePut s i v vs)
@@ -121,7 +121,7 @@ insert k v btree =
             s' = s `div` 2
 
     -- Insertion in a parent node
-    insert' (Node s tv ks cs) = binarySearchWith found notFound s k ks
+    insert' (Node s tv ks cs) = searchWith found notFound s k ks
       where
         -- Found: we continue in the right child child. We also know the size
         -- cannot change (since no new key is added).

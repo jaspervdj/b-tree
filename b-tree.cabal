@@ -25,5 +25,5 @@ Library
   Other-modules:       
     Data.BTree.Array
     Data.BTree.Array.Util
-    Data.BTree.Array.BinarySearch
+    Data.BTree.Array.Search
     Data.BTree.Internal

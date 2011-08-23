@@ -4,11 +4,11 @@ module TestSuite
 
 import Test.Framework (defaultMain)
 
-import qualified Data.BTree.Array.BinarySearch.Tests as Array.BinarySearch.Tests
+import qualified Data.BTree.Array.Search.Tests as Array.Search.Tests
 import qualified Data.BTree.Tests as Tests
 
 main :: IO ()
 main = defaultMain
-    [ Array.BinarySearch.Tests.tests
+    [ Array.Search.Tests.tests
     , Tests.tests
     ]

@@ -103,23 +103,22 @@ insert k v btree =
             | i < s' =
                 let lks = A.unsafeInsertIn 0 s' i k ks
                     lvs = A.unsafeInsertIn 0 s' i v vs
-                    rks = A.unsafeCopyRange s' rs ks
-                    rvs = A.unsafeCopyRange s' rs vs
+                    rks = A.unsafeCopyRange s' s' ks
+                    rvs = A.unsafeCopyRange s' s' vs
                     l = Leaf (s' + 1) lks lvs
-                    r = Leaf rs rks rvs
+                    r = Leaf s' rks rvs
                 in Split l r
             -- We need to split this leaf and insert right
             | otherwise =
                 let lks = A.unsafeCopyRange 0 s' ks
                     lvs = A.unsafeCopyRange 0 s' vs
-                    rks = A.unsafeInsertIn s' rs (i - s') k ks
-                    rvs = A.unsafeInsertIn s' rs (i - s') v vs
+                    rks = A.unsafeInsertIn s' s' (i - s') k ks
+                    rvs = A.unsafeInsertIn s' s' (i - s') v vs
                     l = Leaf s' lks lvs
-                    r = Leaf (rs + 1) rks rvs
+                    r = Leaf (s' + 1) rks rvs
                 in Split l r
           where
             s' = s `div` 2
-            rs = s - s'
 
     -- Insertion in a parent node
     insert' (Node s tv ks cs) = binarySearchWith found notFound s k ks

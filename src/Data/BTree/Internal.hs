@@ -9,19 +9,20 @@ import qualified Data.BTree.Array as A
 
 data BTree k v
     = Node
-        { nodeSize        :: !Int
-        , nodeTotalValues :: !Int
-        , nodeKeys        :: !(A.Array k)
-        , nodeChildren    :: !(A.Array (BTree k v))
+        { nodeSize        :: {-# UNPACK #-} !Int
+        , nodeTotalValues :: {-# UNPACK #-} !Int
+        , nodeKeys        :: {-# UNPACK #-} !(A.Array k)
+        , nodeChildren    :: {-# UNPACK #-} !(A.Array (BTree k v))
         }
     | Leaf
-        { nodeSize      :: !Int
-        , nodeKeys      :: !(A.Array k)
-        , nodeValues    :: !(A.Array v)
+        { nodeSize      :: {-# UNPACK #-} !Int
+        , nodeKeys      :: {-# UNPACK #-} !(A.Array k)
+        , nodeValues    :: {-# UNPACK #-} !(A.Array v)
         }
 
+-- | Maximum number of keys per node
 maxNodeSize :: Int
-maxNodeSize = 32
+maxNodeSize = 4
 {-# INLINE maxNodeSize #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging

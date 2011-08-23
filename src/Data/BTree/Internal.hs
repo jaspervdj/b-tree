@@ -21,7 +21,7 @@ data BTree k v
         }
 
 maxNodeSize :: Int
-maxNodeSize = 4
+maxNodeSize = 32
 {-# INLINE maxNodeSize #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging

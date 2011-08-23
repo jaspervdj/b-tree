@@ -7,3 +7,6 @@ benchmarks/BenchmarkSuite:
 
 tests/TestSuite:
 	ghc --make -O2 ${HS_SOURCE_DIRS} -main-is TestSuite $@.hs
+
+clean:
+	-rm benchmarks/BenchmarkSuite tests/TestSuite

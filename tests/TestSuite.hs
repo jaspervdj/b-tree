@@ -1,3 +1,7 @@
+module TestSuite
+    ( main
+    ) where
+
 import Test.Framework (defaultMain)
 
 import qualified Data.BTree.Array.BinarySearch.Tests as Array.BinarySearch.Tests

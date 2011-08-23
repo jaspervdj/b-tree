@@ -1,1 +1,1 @@
-:set -isrc -itests
+:set -ibenchmarks -isrc -itests

@@ -65,6 +65,7 @@ lookup k = lookup'
         {-# INLINE notFound #-}
 {-# INLINE lookup #-}
 
+-- | Find the minimum key in a 'BTree'
 minimumKey :: Ord k => BTree k v -> k
 minimumKey (Leaf _ ks _)   = A.unsafeIndex ks 0
 minimumKey (Node _ _ _ cs) = minimumKey (A.unsafeIndex cs 0)
@@ -138,7 +139,7 @@ insert k v btree =
                 -- We're still good
                 | s + 1 <= maxNodeSize ->
                     let -- Key to copy
-                        !k' = A.unsafeIndex (nodeKeys r) 0
+                        !k' = minimumKey r
                         !ks' = A.unsafeInsert s i k' ks
                         !cs' = A.unsafePutPair (s + 1) i l r cs
                     in Ok $ Node (s + 1) tv ks' cs'

@@ -12,27 +12,22 @@ import qualified Data.BTree.Array as A
 invariants :: BTree k v -> Bool
 invariants btree = all ($ btree) [nodeSizeInvariant, balancingInvariant]
 
--- | Size of the root node (number of keys in it)
-rootSize :: BTree k v -> Int
-rootSize (Leaf s _ _)   = s
-rootSize (Node s _ _ _) = s
-
 -- | Get the children of the root node as a list
 rootChildren :: BTree k v -> [BTree k v]
-rootChildren (Leaf _ _ _)   = []
-rootChildren (Node s _ _ c) = A.toList (s + 1) c
+rootChildren (Node _ _ _ N)     = []
+rootChildren (Node s _ _ (J c)) = A.toList (s + 1) c
 
 -- | Check if a tree is a leaf
 isLeaf :: BTree k v -> Bool
-isLeaf (Leaf _ _ _) = True
-isLeaf _            = False
+isLeaf (Node _ _ _ N) = True
+isLeaf _              = False
 
 -- | Check that each node contains enough keys
 nodeSizeInvariant :: BTree k v -> Bool
 nodeSizeInvariant = all nodeSizeInvariant' . rootChildren
   where
     nodeSizeInvariant' btree =
-        invariant (rootSize btree) &&
+        invariant (nodeSize btree) &&
         all nodeSizeInvariant' (rootChildren btree)
 
     invariant s

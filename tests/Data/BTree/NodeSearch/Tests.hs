@@ -1,4 +1,4 @@
-module Data.BTree.Array.Search.Tests
+module Data.BTree.NodeSearch.Tests
     ( tests
     ) where
 
@@ -7,11 +7,11 @@ import Data.List (nub, sort)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 
-import Data.BTree.Array.Search
+import Data.BTree.NodeSearch
 import qualified Data.BTree.Array as A
 
 tests :: Test
-tests = testGroup "Data.BTree.Array.Search.Tests"
+tests = testGroup "Data.BTree.NodeSearch.Tests"
     [ testProperty "search"     t_search
     , testProperty "searchWith" t_searchWith
     ]

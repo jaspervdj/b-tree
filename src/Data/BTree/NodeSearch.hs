@@ -1,19 +1,41 @@
--- | Auxiliary search functions for the implementation of the B-tree
+-- | Functions to search through a single node in a 'BTree'
 {-# LANGUAGE BangPatterns #-}
-module Data.BTree.Array.Search
-    ( search
+module Data.BTree.NodeSearch
+    ( maxNodeSize
+    , search
     , searchWith
     ) where
 
 import Data.BTree.Array (Array)
 import qualified Data.BTree.Array as A
 
+-- | Maximum number of keys per node
+maxNodeSize :: Int
+maxNodeSize = 8
+{-# INLINE maxNodeSize #-}
+
+-- | Minimum size to tigger skipping
+skipNodeSize :: Int
+skipNodeSize = 7
+{-# INLINE skipNodeSize #-}
+
+-- | Skipping index
+skipIndex :: Int
+skipIndex = 3
+{-# INLINE skipIndex #-}
+
 search :: Ord a
        => Int         -- ^ Size of the array to search
        -> a           -- ^ Item to search
        -> Array a     -- ^ Array to search
        -> Maybe Int   -- ^ Result
-search size x arr = go 0
+search size x arr
+    | size >= skipNodeSize =
+        case compare (A.unsafeIndex arr skipIndex) x of
+            GT -> go 0
+            EQ -> Just skipIndex
+            LT -> go (skipIndex + 1)
+    | otherwise = go 0
   where
     go !i
         | i >= size                = Nothing
@@ -28,7 +50,13 @@ searchWith :: Ord a
            -> a           -- ^ Item to search
            -> Array a     -- ^ Array to search
            -> b           -- ^ Result
-searchWith found notFound size x arr = go 0
+searchWith found notFound size x arr
+    | size >= skipNodeSize =
+        case compare (A.unsafeIndex arr skipIndex) x of
+            GT -> go 0
+            EQ -> found skipIndex
+            LT -> go (skipIndex + 1)
+    | otherwise = go 0
   where
     go !i
         | i >= size = notFound i

@@ -26,8 +26,8 @@ import Prelude hiding (lookup)
 
 import Data.List (foldl')
 
+import Data.BTree.Array.Search
 import Data.BTree.Internal
-import Data.BTree.NodeSearch
 import qualified Data.BTree.Array as A
 import qualified Data.BTree.Array.Util as A
 

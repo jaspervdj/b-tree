@@ -5,7 +5,6 @@ module Data.BTree.Internal
     , showBTree
     ) where
 
-import Data.BTree.NodeSearch
 import qualified Data.BTree.Array as A
 
 data BTree k v
@@ -20,6 +19,11 @@ data BTree k v
         , nodeKeys      :: {-# UNPACK #-} !(A.Array k)
         , nodeValues    :: {-# UNPACK #-} !(A.Array v)
         }
+
+-- | Maximum number of keys per node
+maxNodeSize :: Int
+maxNodeSize = 8
+{-# INLINE maxNodeSize #-}
 
 -- | Show the internal structure of a 'BTree', useful for debugging
 showBTree :: (Show k, Show v) => BTree k v -> String

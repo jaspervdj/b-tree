@@ -15,6 +15,7 @@ module Data.BTree
 
       -- * Insertion
     , insert
+    , insertWith
 
       -- * Debugging
     , showBTree
@@ -56,10 +57,10 @@ size (Node _ tv _ _ ) = tv
 lookup :: Ord k => k -> BTree k v -> Maybe v
 lookup k = lookup'
   where
-    lookup' (Leaf s ks vs) = fmap (A.unsafeIndex vs) (search s k ks)
+    lookup' (Leaf s ks vs)   = fmap (A.unsafeIndex vs) (search s k ks)
     lookup' (Node s _ ks cs) = searchWith found notFound s k ks
       where
-        found i = lookup' (A.unsafeIndex cs (i + 1))
+        found i    = lookup' (A.unsafeIndex cs (i + 1))
         {-# INLINE found #-}
         notFound i = lookup' (A.unsafeIndex cs i)
         {-# INLINE notFound #-}
@@ -76,7 +77,12 @@ data Insert k v = Ok !(BTree k v)
 
 -- | Insert an element into the 'BTree'
 insert :: Ord k => k -> v -> BTree k v -> BTree k v
-insert k v btree =
+insert = insertWith const
+{-# INLINE insert #-}
+
+-- | Insert an element into the 'BTree'
+insertWith :: Ord k => (v -> v -> v) -> k -> v -> BTree k v -> BTree k v
+insertWith f k v btree =
     -- Insertion in the root
     case insert' btree of
         Ok btree' -> btree'
@@ -92,7 +98,9 @@ insert k v btree =
     insert' (Leaf s ks vs) = searchWith found notFound s k ks
       where
         -- Overwrite the value
-        found i = Ok $ Leaf s ks (A.unsafePut s i v vs)
+        found i =
+            let ov = A.unsafeIndex vs i  -- Do not force ov!
+            in Ok $ Leaf s ks (A.unsafePut s i (f ov v) vs)
 
         -- Insert the value
         notFound i
@@ -162,4 +170,4 @@ insert k v btree =
                         !rcs = A.unsafeCopyRange (s' + 1) (s' + 1) cs'
                         r' = Node s' tv rks rcs
                     in Split l' r'
-{-# INLINE insert #-}
+{-# INLINE insertWith #-}

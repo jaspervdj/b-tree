@@ -78,7 +78,9 @@ unsafeCopy ar si mar di n = go si di 0
 
 -- | Index an array, bounds are not checked
 unsafeIndex :: Array a -> Int -> a
-unsafeIndex (Array ar#) (I# i#) = case indexArray# ar# i# of (# x #) -> x
+unsafeIndex (Array ar#) (I# i#)
+    | i# <# 0#  = error "herp"
+    | otherwise = case indexArray# ar# i# of (# x #) -> x
 {-# INLINE unsafeIndex #-}
 
 -- | Convert a list to an array. For debugging purposes only.
